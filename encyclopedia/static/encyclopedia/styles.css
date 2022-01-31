@@ -1,3 +1,4 @@
+
 body {
     margin: 0;
     background-color: white;
@@ -13,12 +14,30 @@ h1 {
 }
 
 textarea {
-    height: 90vh;
     width: 80%;
+    flex: 1;
+}
+
+input[type=text]{
+  padding: 0 8px;
+  margin-top: 2px;
+}
+
+input[type=submit]{
+  padding: 0 8px;
+  margin-top: 2px;
+  margin-left: 5px;
 }
 
 .main {
     padding: 10px;
+    height: 100vh;
+}
+
+.editor-form {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .search {
@@ -36,3 +55,30 @@ textarea {
 .sidebar h2 {
     margin-top: 5px;
 }
+
+.row {
+  margin-left: 0!important;
+  margin-right: 0!important;
+}
+
+.login-container {
+  margin-top: 20px;
+}
+
+.page-editor-footer {
+  margin-top: 10px;
+}
+
+.title-header-container {
+  display: flex;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.disabled-input {
+  color: gray;
+}
+
+
+
+
