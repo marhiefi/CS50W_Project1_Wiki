@@ -1,9 +1,10 @@
+from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 from markdown2 import Markdown
-from decouple import config
-from random import choice 
-
 from . import util
+from django.urls import reverse
+#import re, random
+from random import choice    
 
 
 def index(request):
@@ -11,142 +12,77 @@ def index(request):
         "entries": util.list_entries()
     })
 
-
-def title(request, title):
-    wiki_page = util.get_entry(title)
-
-    if (not wiki_page):
-        return render(request, "encyclopedia/nonExistingEntry.html", {
-          "message": "Not Found",
-          "status": 404
+def page(request, string):
+    entry = util.get_entry(string)
+    if entry:
+        markdowner = Markdown()
+        filename = markdowner.convert(entry)
+        print(filename)
+        return render(request, "encyclopedia/page.html", {
+                "filename": filename,
+                "string":string
+            })
+    else:
+        return render(request, "encyclopedia/error.html", {
+            "filename": string
         })
-
-
-    html_wiki_page = Markdown().convert(wiki_page)
-
-    return render(request, "encyclopedia/title.html", {
-        "title": title,
-        "html_page": html_wiki_page
-    })
-
-
+    
 def search(request):
-    search_key = request.POST.get("q", "")
-    
-    entries = util.list_entries()
-    exists = search_key in entries
-    
-    if exists:
-        return redirect('title', title=search_key)
+    if request.method == "GET":
+        q = request.GET["q"]
+        entry = util.get_entry(q)
+        print(entry)
+        if entry:
+            return redirect("entry_page", q)
+        else:
+            entries =  util.list_entries()
+            substring = []
+            for entry in entries:
+                print(entry)
+                print(entry.find(q))
+                if re.search(q, entry, re.IGNORECASE):
+                    substring.append(entry)
+                    print(substring)
 
-    filtered_entries = [entry for entry in entries if not entry.find(search_key) == -1]
-
-    return render(request, "encyclopedia/index.html", {
-        "entries": filtered_entries
-    })
+            if substring:
+                return render(request, "encyclopedia/index.html", {
+                "entries": substring
+                })
+            else:
+                return render(request, "encyclopedia/error.html", {
+                    "filename": q
+                })
 
 def new(request):
-    if request.method == 'GET':
-        return render(request, "encyclopedia/editor.html")
-    
-    if request.method == 'POST':
-        if not "is-admin" in request.session:
-            return render(request, "encyclopedia/nonExistingEntry.html", {
-                "message": "Forbidden",
-                "description": "You have to connect as an admin",
-                "status": 403
-            }) 
+    if request.method == "POST":
+        title = request.POST.get("title")
+        if util.get_entry(title):
+            print("exists")
+            messages.warning(request, "The entry already exists")
+            return render(request, 'encyclopedia/new.html')
+        else:
+            print("save")
+            details = request.POST.get("details")
+            util.save_entry(title,details)
+            return redirect("entry_page", title)
 
-        file_content = request.POST.get("content","")
-        file_title = request.POST.get("title", "")
+    return render(request, 'encyclopedia/new.html')
 
-        if (len(file_content) == 0 or len(file_title) == 0):
-            return render(request, "encyclopedia/nonExistingEntry.html", {
-                "message": "Bad Request",
-                "description": "Title and content cannot be empty",
-                "status": 400
-            }) 
-
-        if util.get_entry(file_title):
-            return render(request, "encyclopedia/nonExistingEntry.html", {
-                "message": "Bad Request",
-                "description": "This page already exists",
-                "status": 400
-            }) 
-
-        util.save_entry(file_title, file_content)
-
-        return redirect('title', title=file_title)
-
-def login(request):
-    if request.method == 'GET':
-        return render(request, 'encyclopedia/login.html')
-
-    if request.method == 'POST':
-        password = request.POST.get("password", "")
-        
-        is_admin = password == config("ADMIN_PASSWORD")
-        
-        if not is_admin:
-            return render(request, "encyclopedia/fail.html", {
-                "message": "Unauthorized",
-                "description": "Wrong password",
-                "status": 401
-            }) 
-
-    request.session["is-admin"] = True
-
-    return redirect('index')
-
-def logoff(request):
-    del request.session["is-admin"]
-    return redirect('index')    
-
-
-def edit(request, title):
-    if request.method == 'GET':
-
-        wiki_page = util.get_entry(title)
-
-        if (not wiki_page):
-            return render(request, "encyclopedia/fail.html", {
-              "message": "Not Found",
-              "status": 404
-            })
-
-        return render(request, "encyclopedia/editor.html", {
-            "title": title,
-            "md_page": wiki_page
-        })
-
-    if request.method == 'POST':
-        if not "is-admin" in request.session:
-            return render(request, "encyclopedia/fail.html", {
-                "message": "Forbidden",
-                "description": "You have to connect as an admin",
-                "status": 403
-            }) 
-
-        file_content = request.POST.get("content","")
-        file_title = request.POST.get("title", "")
-
-        print(file_content)
-        print(file_title)
-
-        if (len(file_content) == 0 or len(file_title) == 0):
-            return render(request, "encyclopedia/fail.html", {
-                "message": "Bad Request",
-                "description": "Title and content cannot be empty",
-                "status": 400
-            }) 
-
-        util.save_entry(file_title, file_content)
-
-        return redirect('title', title=file_title)    
+def edit(request, string):
+    if request.method == "POST":
+        details = request.POST.get("details")
+        util.save_entry(string,details)
+        return redirect("entry_page", string)
+    else:
+        entry = util.get_entry(string)
+        context = {
+            "string": string,
+            "details": entry
+        }
+        return render(request, "encyclopedia/edit.html", context)
 
 def random(request):
     entries = util.list_entries()
-    selected_choice = choice(entries)
-    
-    return redirect('title', title=selected_choice)
-    
+    random_choice = choice(entries)
+    return redirect("entry_page", title=random_choice)
+
