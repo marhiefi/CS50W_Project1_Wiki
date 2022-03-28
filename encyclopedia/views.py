@@ -81,7 +81,7 @@ def edit(request, string):
         }
         return render(request, "encyclopedia/edit.html", context)
 
-def random(request):
+def randomness(request):
     entries = util.list_entries()
     random_choice = choice(entries)
     return redirect("entry_page", title=random_choice)
