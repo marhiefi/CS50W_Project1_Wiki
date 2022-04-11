@@ -1,1 +1,1 @@
-# CS50W_Project1_Wiki in progress (need to fix "random page")
+# Harvard CS50's Web Programming with Python and JavaScript - Project 1
